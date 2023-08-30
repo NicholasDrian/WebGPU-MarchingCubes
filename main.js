@@ -1,10 +1,4 @@
 const canvas = document.getElementById("screen");
-const camera = new Camera(
-	[0, -1, 0.5],	//position
-	[0, 1, -0.5],	//forward
-	[0, 0, 1],	//up
-	60		//fovy
-);
 const vertices = new Float32Array([
 	-0.8, 0.8,
 	0.8, 0.8,
@@ -18,6 +12,13 @@ const indices = new Uint32Array([
 ]);
 
 var Init = async function() {
+
+	const camera = new Camera(
+		[0, -1, 0.5],	//position
+		[0, 1, -0.5],	//forward
+		[0, 0, 1],	//up
+		60		//fovy
+	);
 
 	if (!navigator.gpu) {
 		throw new Error("ERROR: this browser does not support web gpu");
@@ -65,9 +66,44 @@ var Init = async function() {
 		code: shader,
 	});
 
+	const bindGroupLayout = device.createBindGroupLayout({
+		label: "bind group layout",
+		entries: [
+			{
+				binding: 0,
+				visibility: GPUShaderStage.VERTEX,
+				buffer: {}
+			}
+		]
+	});
+
+	const viewProj = camera.getViewProj();
+	const viewProjBuffer = device.createBuffer({
+		label: "view proj buffer",
+		size: viewProj.byteLength,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+	});
+	device.queue.writeBuffer(viewProjBuffer, 0, viewProj);
+	
+	const bindGroup = device.createBindGroup({
+		label: "bind group",
+		layout: bindGroupLayout,
+		entries: [
+			{
+				binding: 0,
+				resource: { buffer: viewProjBuffer }
+			}
+		]
+	});
+
+	const pipelineLayout = device.createPipelineLayout({
+		label: "pipeline layout",
+		bindGroupLayouts: [bindGroupLayout]
+	});
+
 	const pipeline = device.createRenderPipeline({
 		label: "pipeline",
-		layout: "auto",
+		layout: pipelineLayout, 
 		vertex: {
 			module: shaderModule,
 			entryPoint: "vertexMain",
@@ -96,6 +132,7 @@ var Init = async function() {
 		],
 	});
 	pass.setPipeline(pipeline);
+	pass.setBindGroup(0, bindGroup);
 	pass.setVertexBuffer(0, vertexBuffer);
 	pass.setIndexBuffer(indexBuffer, "uint32");
 	pass.drawIndexed(indices.length);
