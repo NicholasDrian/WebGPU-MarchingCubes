@@ -1,5 +1,11 @@
 const canvas = document.getElementById("screen");
 
+const camera = new Camera(
+	[0, -1, 0.5],	//position
+	[0, 1, -0.5],	//forward
+	[0, 0, 1],	//up
+	60		//fovy
+);
 
 const vertices = new Float32Array([
 	-0.8, 0.8,
