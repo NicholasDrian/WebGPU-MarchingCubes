@@ -2,6 +2,8 @@
 
 const shader = `
 
+group(0) binding(0) var<uniform> ViewProj : mat4x4<f32>;
+
 @vertex
 fn vertexMain(@location(0) position : vec2f) -> @builtin(position) vec4f {
 	return vec4f(position, 0, 1);
