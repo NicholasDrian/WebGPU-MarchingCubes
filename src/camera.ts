@@ -1,5 +1,5 @@
-import { mat4, Mat4 } from "wgpu-matrix"
-
+import { mat4 } from "wgpu-matrix"
+import { normalize, sum, sub, size } from "./math";
 
 export class Camera {
 	constructor(
@@ -8,6 +8,9 @@ export class Camera {
 		private focus: [number, number, number], 
 		private fovy: number,
 		private aspect: number) {
+
+		//todo
+
 	}
 
 	getViewProj() : Float32Array {
@@ -22,4 +25,6 @@ export class Camera {
 		return viewProj;
 
 	}
+
+	
 }
