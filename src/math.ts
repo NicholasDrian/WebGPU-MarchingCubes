@@ -19,6 +19,14 @@ export const size = function(v : [number, number, number]) : number
 	return Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
 }
 
+export const scale = function(v : [number, number, number], n: number) : [number, number, number] 
+{
+	v[0] *= n;
+	v[1] *= n;
+	v[2] *= n;
+	return v;
+}
+
 
 export const normalize = function(v : [number, number, number]) : [number, number, number]
 {

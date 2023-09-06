@@ -131,6 +131,10 @@ const init = async function() {
 
 	function frame() {
 	
+		camera.tick();
+		device.queue.writeBuffer(viewProjBuffer, 0, camera.getViewProj());
+
+
 		const encoder: GPUCommandEncoder = device.createCommandEncoder();
 		const pass: GPURenderPassEncoder = encoder.beginRenderPass({
 			colorAttachments: [
