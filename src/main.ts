@@ -1,6 +1,7 @@
 import shader from "./shader.wgsl";
 import { debugCubeVerts } from "./debugCube";
 import { Camera } from "./camera";
+import { Vec3, vec3 } from "wgpu-matrix";
 
 
 const compatibilityCheck : HTMLElement = <HTMLElement> document.getElementById("compatibility-check");
@@ -28,9 +29,9 @@ const init = async function() {
 	});
 
 	const camera : Camera = new Camera(
-		[0.0, 0.0, -4.0],	//position
-		[0.0, 1.0, 0.0],	//up
-		[0.0, 0.0, 0.0],	//focus
+		vec3.create(0.0, 0.0, -4.0),	//position
+		vec3.create(0.0, 1.0, 0.0),	//up
+		vec3.create(0.0, 0.0, 1.0),	//forward
 		2,		//fovy
 		canvas.clientWidth / canvas.clientHeight //aspect
 	);	
