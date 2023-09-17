@@ -1,5 +1,6 @@
 
-import shader from "./compute.wgsl";
+import perlinNoiseShader from "./perlinNoiseShader.wgsl";
+import marchingCubesShader from "./marchingCubesShader.wgsl"
 
 const xSamples: number = 16;
 const ySamples: number = 16;
@@ -37,7 +38,7 @@ export class MeshGenerator {
 	private createResources() {
 		this.shader = this.device.createShaderModule({
 			label: "compute shader module",
-			code: shader, 
+			code: perlinNoiseShader, 
 		});
 		this.bindGroupLayout = this.device.createBindGroupLayout({
 			entries: [
