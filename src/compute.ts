@@ -56,7 +56,7 @@ export class MeshGenerator {
 		this.sampleBuffer = this.device.createBuffer({
 			label: "sample buffer",
 			size: xSamples * ySamples * zSamples * 4,
-			usage: GPUBufferUsage.STORAGE
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
 		});
 		this.dimensionsBuffer = this.device.createBuffer({
 			label: "sample dimensions buffer",
@@ -104,6 +104,16 @@ export class MeshGenerator {
 	}
 
 	generateMesh() : void {
+
+
+
+		const debugBuffer = this.device.createBuffer({
+			label: "debug buffer",
+			size: xSamples * ySamples * zSamples * 4,
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+		});
+
+
 		const encoder = this.device.createCommandEncoder();
 
 		const computePass = encoder.beginComputePass();
@@ -112,11 +122,19 @@ export class MeshGenerator {
 		computePass.dispatchWorkgroups(xSamples, ySamples, zSamples);
 		computePass.end();
 
+		encoder.copyBufferToBuffer(this.sampleBuffer, 0, debugBuffer, 0, xSamples * ySamples * zSamples * 4);
+
 		this.device.queue.submit([encoder.finish()]);
 
-		
+
+		// success!!!!!
 		this.device.queue.onSubmittedWorkDone().then(() => {
-			this.sampleBuffer.getMappedRange
+			debugBuffer.mapAsync(GPUMapMode.READ).then(() => { 
+				const res: Float32Array = new Float32Array(debugBuffer.getMappedRange());
+				for (var i = 0; i < res.length; i++) {
+					console.log(res[i]);
+				}
+			});
 		});
 
 		console.log("mesh generated!");
