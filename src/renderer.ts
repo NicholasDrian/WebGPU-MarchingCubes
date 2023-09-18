@@ -3,6 +3,7 @@ import shader from "./shader.wgsl";
 import { debugCubeVerts } from "./debugCube";
 import { Camera } from "./camera";
 import { vec3 } from "wgpu-matrix";
+import { Mesh } from "./mesh"
 
 const compatibilityCheck : HTMLElement = <HTMLElement> document.getElementById("compatibility-check");
 
@@ -16,11 +17,10 @@ export class Renderer {
 	private camera!: Camera;
 	private viewProjBuffer!: GPUBuffer;
 	private pipeline!: GPURenderPipeline;
-	private vertexBuffer!: GPUBuffer;
 	private depthTexture!: GPUTexture;
 	private bindGroup!: GPUBindGroup;
 	private bindGroupLayout!: GPUBindGroupLayout;
-	private vertexBufferLayout!: GPUVertexBufferLayout;
+	private mesh!: Mesh;
 
 	constructor() {
 
@@ -31,13 +31,6 @@ export class Renderer {
 		await this.createDevice();
 		this.createResources();	
 		this.createPipeline();
-		this.camera = new Camera(
-			vec3.create(0.0, 0.0, -4.0),	//position
-			vec3.create(0.0, 1.0, 0.0),	//up
-			vec3.create(0.0, 0.0, 1.0),	//forward
-			2,		//fovy
-			this.canvas.clientWidth / this.canvas.clientHeight //aspect
-		);	
 		this.render();
 	}
 
@@ -66,34 +59,26 @@ export class Renderer {
 
 	private createResources() {
 
-		this.camera = new Camera(
+		this.camera = new Camera
 			vec3.create(0.0, 0.0, -4.0),	//position
 			vec3.create(0.0, 1.0, 0.0),	//up
 			vec3.create(0.0, 0.0, 1.0),	//forward
 			2,		//fovy
 			this.canvas.clientWidth / this.canvas.clientHeight //aspect
 		);	
-		this.vertexBuffer = this.device.createBuffer({
-			label: "vertex buffer",
-			size: debugCubeVerts.byteLength,
-			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-		});
-		this.device.queue.writeBuffer(this.vertexBuffer, 0, debugCubeVerts);
-		this.vertexBufferLayout = {
-			arrayStride: 32,
-			attributes: [
-				{
-					format: "float32x4",
-					offset: 0,
-					shaderLocation : 0,
-				}, {
-					format: "float32x4",
-					offset: 16,
-					shaderLocation: 1,
-				}
-			]
-		};
-
+		
+		this.mesh = new Mesh(this.device, 
+			new Float32Array([
+				-1.0, -1.0, 0.0, 1.0,   1.0, 1.0, 1.0, 1.0,				
+				-1.0, 1.0, 0.0, 1.0,   0.0, 0.0, 1.0, 1.0,				
+				1.0, 1.0, 0.0, 1.0,   0.0, 1.0, 0.0, 1.0,				
+				1.0, -1.0, 0.0, 1.0,   1.0, 0.0, 0.0, 1.0,				
+			]),
+			new Int32Array([
+				0, 1, 2,
+				2, 3, 0,
+			])
+		);
 
 		this.shaderModule = this.device.createShaderModule({
 			label: "shader module",
@@ -148,7 +133,7 @@ export class Renderer {
 			label: "pipeline",
 			primitive: {
 				topology: "triangle-list",
-				cullMode: "back"
+				cullMode: "none"
 			},
 			layout: pipelineLayout,
 			depthStencil: {
@@ -159,7 +144,7 @@ export class Renderer {
 			vertex: {
 				module: this.shaderModule,
 				entryPoint: "vertexMain",
-				buffers: [this.vertexBufferLayout]
+				buffers: [this.mesh.getVertexBufferLayout()]
 			},
 			fragment: {
 				module: this.shaderModule,
@@ -199,8 +184,9 @@ export class Renderer {
 
 		pass.setPipeline(this.pipeline);
 		pass.setBindGroup(0, this.bindGroup);
-		pass.setVertexBuffer(0, this.vertexBuffer);
-		pass.draw(debugCubeVerts.length / 8);
+		pass.setVertexBuffer(0, this.mesh.getVertexBuffer());
+		pass.setIndexBuffer(this.mesh.getIndexBuffer(), "uint32");
+		pass.drawIndexed(this.mesh.getIndexCount());
 		pass.end();
 		const commandBuffer = encoder.finish();
 		this.device.queue.submit([commandBuffer]);
@@ -208,3 +194,16 @@ export class Renderer {
 	}
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

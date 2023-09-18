@@ -3,16 +3,15 @@
 //override blockSize = 1;
 
 fn hash(point: vec3<f32>) -> u32 {
-	var x : u32 = u32(point.x * 1323.0); // bitcase, not conversion!	
+	var x : u32 = u32(point.x * 1323.0); 
 	var y : u32 = u32(point.y * 14385.0); // needs improvement!	
 	var z : u32 = u32(point.z * 115437.0);	
 	// TODO: choose better magic values, should be coprime. 
 	return x ^ y ^ z; 
 }
 
-fn random(seed: u32, low: f32, high: f32) -> f32 {
-	var range: f32 = high - low;
-	return f32(seed % 10000) / 9999.0 * range - low;	
+fn random(seed: u32) -> f32 {
+	return f32(seed % 10000) / 9999.0;	
 }
 
 fn lerp(a: f32, b: f32, alpha: f32) -> f32 {
@@ -33,14 +32,14 @@ fn samplePerlin(point: vec3<f32>, scale: f32) -> f32 {
 	var yMax: f32 = point.y + scale - dy;
 	var zMax: f32 = point.z + scale - dz;
 	
-	var lll: f32 = random(hash(vec3<f32>(xMin, yMin, zMin)), 0.0, 1.0);
-	var llh: f32 = random(hash(vec3<f32>(xMin, yMin, zMax)), 0.0, 1.0);
-	var lhl: f32 = random(hash(vec3<f32>(xMin, yMax, zMin)), 0.0, 1.0);
-	var lhh: f32 = random(hash(vec3<f32>(xMin, yMax, zMax)), 0.0, 1.0);
-	var hll: f32 = random(hash(vec3<f32>(xMax, yMin, zMin)), 0.0, 1.0);
-	var hlh: f32 = random(hash(vec3<f32>(xMax, yMin, zMax)), 0.0, 1.0);
-	var hhl: f32 = random(hash(vec3<f32>(xMax, yMax, zMin)), 0.0, 1.0);
-	var hhh: f32 = random(hash(vec3<f32>(xMax, yMax, zMax)), 0.0, 1.0);
+	var lll: f32 = random(hash(vec3<f32>(xMin, yMin, zMin)));
+	var llh: f32 = random(hash(vec3<f32>(xMin, yMin, zMax)));
+	var lhl: f32 = random(hash(vec3<f32>(xMin, yMax, zMin)));
+	var lhh: f32 = random(hash(vec3<f32>(xMin, yMax, zMax)));
+	var hll: f32 = random(hash(vec3<f32>(xMax, yMin, zMin)));
+	var hlh: f32 = random(hash(vec3<f32>(xMax, yMin, zMax)));
+	var hhl: f32 = random(hash(vec3<f32>(xMax, yMax, zMin)));
+	var hhh: f32 = random(hash(vec3<f32>(xMax, yMax, zMax)));
 
 	var dxNorm = dx / scale;
 	var dyNorm = dy / scale;
