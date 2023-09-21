@@ -22,7 +22,7 @@ export class Renderer {
 	private bindGroupLayout!: GPUBindGroupLayout;
 	private mesh!: Mesh;
 
-	constructor() {
+	constructor(mesh: Float32Array) {
 
 	}
 

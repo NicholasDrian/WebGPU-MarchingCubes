@@ -1,6 +1,8 @@
 
 import perlinNoiseShader from "./perlinNoiseShader.wgsl";
 import marchingCubesShader from "./marchingCubesShader.wgsl"
+import { triangulationTable } from "./data"
+import { Mesh } from "./mesh"
 
 const xSamples: number = 16;
 const ySamples: number = 16;
@@ -20,6 +22,7 @@ export class MeshGenerator {
 
 	private pointBuffer!: GPUBuffer;
 	private sparseMeshBuffer!: GPUBuffer;
+	private triangulationBuffer!: GPUBuffer;
 
 	private perlinNoisePipeline!: GPUComputePipeline;
 	private marchingCubesPipeline!: GPUComputePipeline;
@@ -32,12 +35,12 @@ export class MeshGenerator {
 		await this.setupDevice();
 		this.createResources();
 		this.createPipeline();
-		this.generateMesh();
 	}
 
 	private async setupDevice() {
 		const adapter = await navigator.gpu.requestAdapter();
 		this.device = <GPUDevice> await adapter?.requestDevice();
+		console.log("craeted device");
 	}
 
 	private createResources() {
@@ -64,12 +67,15 @@ export class MeshGenerator {
 			label: "marching cubes bind group layout",
 			entries: [
 				{
-					binding: 0, // porlin noise grid points
+					binding: 0, // perlin noise grid points
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: { type: "read-only-storage" }
-				},
-				{
-					binding: 1, // sparse mesh buffer
+				},{
+					binding: 1, // triangulation 
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: { type: "read-only-storage" }
+				},{
+					binding: 2, // sparse mesh buffer
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: { type: "storage" }
 				}
@@ -78,14 +84,20 @@ export class MeshGenerator {
 		this.pointBuffer = this.device.createBuffer({
 			label: "point buffer",
 			size: xSamples * ySamples * zSamples * 4 * 4,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC, // remove after debug
+			usage: GPUBufferUsage.STORAGE  | GPUBufferUsage.COPY_SRC, // remove after debug
 		});
 		this.sparseMeshBuffer = this.device.createBuffer({
 			label: "sparse mesh buffer",
 			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4,
-			usage: GPUBufferUsage.STORAGE
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC, // remove after debug
 		});
-
+		this.triangulationBuffer = this.device.createBuffer({
+			label: "triangulation buffer",
+			size: 256 * 12 * 4,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+		this.device.queue.writeBuffer(this.triangulationBuffer, 0, triangulationTable, 0, triangulationTable.length);
+		
 		this.perlinNoiseBindGroup = this.device.createBindGroup({
 			label: "compute bind group",
 			layout: this.perlinNoiseBindGroupLayout,
@@ -104,8 +116,12 @@ export class MeshGenerator {
 				{
 					binding: 0, 
 					resource: { buffer: this.pointBuffer },
-				}, {
+				},{
 					binding: 1,
+					resource: { buffer: this.triangulationBuffer }
+				},{
+
+					binding: 2,
 					resource: { buffer: this.sparseMeshBuffer }
 				}
 			]
@@ -146,13 +162,11 @@ export class MeshGenerator {
 		});
 	}
 
-	generateMesh() : void {
-
-
-
+	public async generateMesh() : Promise<Float32Array> {
+		console.log(this.device);
 		const debugBuffer = this.device.createBuffer({
 			label: "debug buffer",
-			size: xSamples * ySamples * zSamples * 4 * 4,
+			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
 		});
 
@@ -171,22 +185,16 @@ export class MeshGenerator {
 
 	
 
-		encoder.copyBufferToBuffer(this.pointBuffer, 0, debugBuffer, 0, xSamples * ySamples * zSamples * 4 * 4);
+		encoder.copyBufferToBuffer(this.sparseMeshBuffer, 0, debugBuffer, 0, (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4);
 
 		this.device.queue.submit([encoder.finish()]);
 
 
-		// success!!!!!
-		this.device.queue.onSubmittedWorkDone().then(() => {
-			debugBuffer.mapAsync(GPUMapMode.READ).then(() => { 
-				const res: Float32Array = new Float32Array(debugBuffer.getMappedRange());
-				for (var i = 0; i < res.length; i++) {
-					console.log(res[i]);
-				}
-			});
+		await this.device.queue.onSubmittedWorkDone();
+		const res: Float32Array = await debugBuffer.mapAsync(GPUMapMode.READ).then(() => {
+			return new Float32Array(debugBuffer.getMappedRange());
 		});
-
-		console.log("mesh generated!");
+		return res;
 	}
 
 
