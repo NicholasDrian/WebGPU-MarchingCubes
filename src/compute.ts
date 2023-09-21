@@ -17,9 +17,10 @@ export class MeshGenerator {
 	private perlinNoiseBindGroup!: GPUBindGroup;
 	private marchingCubesBindGroupLayout!: GPUBindGroupLayout;
 	private marchingCubesBindGroup!: GPUBindGroup;
-	private sampleBuffer!: GPUBuffer;
-	private dimensionsBuffer!: GPUBuffer;
+
+	private pointBuffer!: GPUBuffer;
 	private sparseMeshBuffer!: GPUBuffer;
+
 	private perlinNoisePipeline!: GPUComputePipeline;
 	private marchingCubesPipeline!: GPUComputePipeline;
 
@@ -55,11 +56,6 @@ export class MeshGenerator {
 					binding: 0, // perlin noise sample buffer
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: { type: "storage" }
-				},
-				{
-					binding: 1, // uniform parameters
-					visibility: GPUShaderStage.COMPUTE,
-					buffer: { type: "read-only-storage" } // TODO: change to uniform
 				}
 			]
 		});
@@ -68,7 +64,7 @@ export class MeshGenerator {
 			label: "marching cubes bind group layout",
 			entries: [
 				{
-					binding: 0, // perlin noise sample buffer
+					binding: 0, // porlin noise grid points
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: { type: "read-only-storage" }
 				},
@@ -79,37 +75,24 @@ export class MeshGenerator {
 				}
 			]
 		});
-		
-		this.sampleBuffer = this.device.createBuffer({
-			label: "sample buffer",
-			size: xSamples * ySamples * zSamples * 4,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC, // COPY_SRC is just for debug
+		this.pointBuffer = this.device.createBuffer({
+			label: "point buffer",
+			size: xSamples * ySamples * zSamples * 4 * 4,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC, // remove after debug
 		});
 		this.sparseMeshBuffer = this.device.createBuffer({
 			label: "sparse mesh buffer",
-			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 6 * 3 * 4,
+			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4,
 			usage: GPUBufferUsage.STORAGE
 		});
-		this.dimensionsBuffer = this.device.createBuffer({
-			label: "sample dimensions buffer",
-			size: 3 * 4,
-			usage: GPUBufferUsage.STORAGE, // should probably make this uniform???
-			mappedAtCreation: true,
-		});
-		new Uint32Array(this.dimensionsBuffer.getMappedRange()).set([xSamples, ySamples, zSamples]);
-		this.dimensionsBuffer.unmap();
 
 		this.perlinNoiseBindGroup = this.device.createBindGroup({
 			label: "compute bind group",
 			layout: this.perlinNoiseBindGroupLayout,
 			entries: [
-				{ 
-					binding: 0,
-					resource: { buffer: this.sampleBuffer },
-				},
 				{
-					binding: 1,
-					resource: { buffer: this.dimensionsBuffer },
+					binding: 0, 
+					resource: { buffer: this.pointBuffer },
 				}
 			]
 		});
@@ -119,8 +102,8 @@ export class MeshGenerator {
 			layout: this.marchingCubesBindGroupLayout,
 			entries: [
 				{
-					binding: 0,
-					resource: { buffer: this.sampleBuffer }
+					binding: 0, 
+					resource: { buffer: this.pointBuffer },
 				}, {
 					binding: 1,
 					resource: { buffer: this.sparseMeshBuffer }
@@ -169,7 +152,7 @@ export class MeshGenerator {
 
 		const debugBuffer = this.device.createBuffer({
 			label: "debug buffer",
-			size: xSamples * ySamples * zSamples * 4,
+			size: xSamples * ySamples * zSamples * 4 * 4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
 		});
 
@@ -180,10 +163,15 @@ export class MeshGenerator {
 		computePass.setPipeline(this.perlinNoisePipeline);
 		computePass.setBindGroup(0, this.perlinNoiseBindGroup);
 		computePass.dispatchWorkgroups(xSamples, ySamples, zSamples);
+
+		computePass.setPipeline(this.marchingCubesPipeline);
+		computePass.setBindGroup(0, this.marchingCubesBindGroup);
+		computePass.dispatchWorkgroups(xSamples - 1, ySamples - 1, zSamples - 1);
 		computePass.end();
 
+	
 
-		encoder.copyBufferToBuffer(this.sampleBuffer, 0, debugBuffer, 0, xSamples * ySamples * zSamples * 4);
+		encoder.copyBufferToBuffer(this.pointBuffer, 0, debugBuffer, 0, xSamples * ySamples * zSamples * 4 * 4);
 
 		this.device.queue.submit([encoder.finish()]);
 

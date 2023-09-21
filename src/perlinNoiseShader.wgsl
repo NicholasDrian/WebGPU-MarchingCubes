@@ -1,8 +1,7 @@
-@binding(0) @group(0) var<storage, read_write> output: array<f32>;
-@binding(1) @group(0) var<storage, read> sampleDimensions: vec3<u32>;
-//override blockSize = 1;
+@binding(0) @group(0) var<storage, read_write> points: array<vec4<f32>>;
 
 fn hash(point: vec3<f32>) -> u32 {
+	// TODO: use bitcast<T>
 	var x : u32 = u32(point.x * 1323.0); 
 	var y : u32 = u32(point.y * 14385.0); // needs improvement!	
 	var z : u32 = u32(point.z * 115437.0);	
@@ -18,7 +17,7 @@ fn lerp(a: f32, b: f32, alpha: f32) -> f32 {
 	return a * alpha + b * (1.0 - alpha);
 }
 
-fn samplePerlin(point: vec3<f32>, scale: f32) -> f32 {
+fn samplePerlin(point: vec4<f32>, scale: f32) -> f32 {
 
 	var dx: f32 = point.x % scale;
 	var dy: f32 = point.y % scale;
@@ -60,7 +59,7 @@ fn samplePerlin(point: vec3<f32>, scale: f32) -> f32 {
 
 }
 
-fn sample(point : vec3<f32>) -> f32 {
+fn sample(point : vec4<f32>) -> f32 {
 
 	var res: f32 = 0.0;
 	res += samplePerlin(point, 100.0) * 0.3;
@@ -71,10 +70,14 @@ fn sample(point : vec3<f32>) -> f32 {
 }
 
 @compute @workgroup_size(1, 1, 1)
-fn main(@builtin(global_invocation_id) grid: vec3<u32>) {
+fn main(
+	@builtin(global_invocation_id) grid: vec3<u32>,
+	@builtin(num_workgroups) groupCount: vec3<u32>
+	) {
 	
-	var idx: u32 = grid.x + grid.y * sampleDimensions.x + grid.z * sampleDimensions.x * sampleDimensions.y;
-	var point: vec3<f32> = vec3<f32>(f32(grid[0]), f32(grid[1]), f32(grid[2]));
-	output[idx] = sample(point);
+	var idx: u32 = grid.x + grid.y * groupCount.x + grid.z * groupCount.x * groupCount.y;
+	var point: vec4<f32> = vec4<f32>(f32(grid[0]), f32(grid[1]), f32(grid[2]), 1.0);
+	point.w = sample(point);
+	points[idx] = point;
 
 }

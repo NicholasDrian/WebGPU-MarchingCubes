@@ -59,7 +59,7 @@ export class Renderer {
 
 	private createResources() {
 
-		this.camera = new Camera
+		this.camera = new Camera(
 			vec3.create(0.0, 0.0, -4.0),	//position
 			vec3.create(0.0, 1.0, 0.0),	//up
 			vec3.create(0.0, 0.0, 1.0),	//forward
