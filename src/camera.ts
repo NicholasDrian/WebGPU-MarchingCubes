@@ -84,15 +84,15 @@ export class Camera {
 		}
 
 		if (this.isMovingForward) {
-			this.goForward((now - this.lastFrameTime) / 500);
+			this.goForward((now - this.lastFrameTime) / 100);
 		} else if (this.isMovingBackward) {
-			this.goForward((this.lastFrameTime - now) / 500);
+			this.goForward((this.lastFrameTime - now) / 100);
 		}
 		
 		if (this.isMovingRight) {
-			this.goRight((now - this.lastFrameTime) / 500);
+			this.goRight((now - this.lastFrameTime) / 100);
 		} else if (this.isMovingLeft) {
-			this.goRight((this.lastFrameTime - now) / 500);
+			this.goRight((this.lastFrameTime - now) / 100);
 		}
 
 		this.lastFrameTime = now;

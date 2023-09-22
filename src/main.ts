@@ -18,8 +18,8 @@ const init = async function() {
 	const compute : MeshGenerator = new MeshGenerator();
 	await compute.init();
 	const sparseMeshArray: Float32Array = await compute.generateMesh();
-	const renderer : Renderer = new Renderer(sparseMeshArray);
-	renderer.init();
+	const renderer : Renderer = new Renderer();
+	renderer.init(sparseMeshArray);
 
 }
 

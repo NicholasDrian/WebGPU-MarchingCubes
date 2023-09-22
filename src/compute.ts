@@ -5,8 +5,8 @@ import { triangulationTable } from "./data"
 import { Mesh } from "./mesh"
 
 const xSamples: number = 16;
-const ySamples: number = 16;
-const zSamples: number = 64;
+const ySamples: number = 64;
+const zSamples: number = 16;
 
 
 export class MeshGenerator {
@@ -22,6 +22,7 @@ export class MeshGenerator {
 
 	private pointBuffer!: GPUBuffer;
 	private sparseMeshBuffer!: GPUBuffer;
+	private outputBuffer!: GPUBuffer;
 	private triangulationBuffer!: GPUBuffer;
 
 	private perlinNoisePipeline!: GPUComputePipeline;
@@ -40,7 +41,6 @@ export class MeshGenerator {
 	private async setupDevice() {
 		const adapter = await navigator.gpu.requestAdapter();
 		this.device = <GPUDevice> await adapter?.requestDevice();
-		console.log("craeted device");
 	}
 
 	private createResources() {
@@ -96,6 +96,11 @@ export class MeshGenerator {
 			size: 256 * 12 * 4,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
+		this.outputBuffer = this.device.createBuffer({
+			label: "debug buffer",
+			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4,
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+		});
 		this.device.queue.writeBuffer(this.triangulationBuffer, 0, triangulationTable, 0, triangulationTable.length);
 		
 		this.perlinNoiseBindGroup = this.device.createBindGroup({
@@ -120,7 +125,6 @@ export class MeshGenerator {
 					binding: 1,
 					resource: { buffer: this.triangulationBuffer }
 				},{
-
 					binding: 2,
 					resource: { buffer: this.sparseMeshBuffer }
 				}
@@ -163,12 +167,7 @@ export class MeshGenerator {
 	}
 
 	public async generateMesh() : Promise<Float32Array> {
-		console.log(this.device);
-		const debugBuffer = this.device.createBuffer({
-			label: "debug buffer",
-			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4,
-			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-		});
+
 
 
 		const encoder = this.device.createCommandEncoder();
@@ -185,14 +184,14 @@ export class MeshGenerator {
 
 	
 
-		encoder.copyBufferToBuffer(this.sparseMeshBuffer, 0, debugBuffer, 0, (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4);
+		encoder.copyBufferToBuffer(this.sparseMeshBuffer, 0, this.outputBuffer, 0, (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4);
 
 		this.device.queue.submit([encoder.finish()]);
 
 
 		await this.device.queue.onSubmittedWorkDone();
-		const res: Float32Array = await debugBuffer.mapAsync(GPUMapMode.READ).then(() => {
-			return new Float32Array(debugBuffer.getMappedRange());
+		const res: Float32Array = await this.outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
+			return new Float32Array(this.outputBuffer.getMappedRange());
 		});
 		return res;
 	}

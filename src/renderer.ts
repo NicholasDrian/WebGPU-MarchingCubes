@@ -22,14 +22,13 @@ export class Renderer {
 	private bindGroupLayout!: GPUBindGroupLayout;
 	private mesh!: Mesh;
 
-	constructor(mesh: Float32Array) {
-
+	constructor() {
 	}
 
-	async init() {
+	async init(sparseMesh: Float32Array) {
 
 		await this.createDevice();
-		this.createResources();	
+		this.createResources(sparseMesh);	
 		this.createPipeline();
 		this.render();
 	}
@@ -57,16 +56,18 @@ export class Renderer {
 
 	}
 
-	private createResources() {
+	private createResources(sparseMesh: Float32Array) {
 
 		this.camera = new Camera(
-			vec3.create(0.0, 0.0, -4.0),	//position
+			vec3.create(0.0, 0.0, -20.0),	//position
 			vec3.create(0.0, 1.0, 0.0),	//up
 			vec3.create(0.0, 0.0, 1.0),	//forward
 			2,		//fovy
 			this.canvas.clientWidth / this.canvas.clientHeight //aspect
 		);	
-		
+
+		this.mesh = new Mesh(this.device, sparseMesh);
+	/*	
 		this.mesh = new Mesh(this.device, 
 			new Float32Array([
 				-1.0, -1.0, 0.0, 1.0,   1.0, 1.0, 1.0, 1.0,				
@@ -79,7 +80,7 @@ export class Renderer {
 				2, 3, 0,
 			])
 		);
-
+*/
 		this.shaderModule = this.device.createShaderModule({
 			label: "shader module",
 			code: shader,

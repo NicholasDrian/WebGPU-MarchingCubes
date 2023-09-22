@@ -1,9 +1,9 @@
 @binding(0) @group(0) var<storage, read> points: array<vec4<f32>>;
-@binding(1) @group(0) var<storage, read> triangulationTable: array<f32>;
+@binding(1) @group(0) var<storage, read> triangulationTable: array<i32>;
 @binding(2) @group(0) var<storage, read_write> sparseMesh: array<vec4<f32>>;
 
 
-const THRESHOLD: f32 = 0.5; 
+const THRESHOLD: f32 = 0.7; 
 
 fn getPointIndex(x: u32, y: u32, z: u32, groupCount: vec3<u32>) -> u32 {
 	return
@@ -14,24 +14,38 @@ fn getPointIndex(x: u32, y: u32, z: u32, groupCount: vec3<u32>) -> u32 {
 
 
 fn interp(edges: array<vec2<u32>, 12>, pointsLocal: array<vec4<f32>, 8>) -> array<vec4<f32>, 12> {
+	var res: array<vec4<f32>, 12>;
+	for (var i : u32 = 0; i < 12; i++) {
+		var a: vec4<f32> = pointsLocal[edges[i][0]];
+		var b: vec4<f32> = pointsLocal[edges[i][1]];
+		res[i] = (a + b) * 0.5;
+
+	}
+	return res;
+	/*
 	var res : array<vec4<f32>, 12>;
 	for (var i: u32 = 0; i < 12; i++) {
 		var a: vec4<f32> = pointsLocal[edges[i][0]];
 		var b: vec4<f32> = pointsLocal[edges[i][1]];
 		var deltaS: f32 = b.w - a.w;
-		var deltaT: f32 = THRESHOLD - a.w;
-		res[i] = a + (b - a) * deltaT / deltaS;
-		res[i].w = 1.0;
+		if (deltaS < 0.01) { // TODO: there must be a better way??
+			res[i] = a;
+		} else {
+			var deltaT: f32 = THRESHOLD - a.w;
+			res[i] = a + (b - a) * (deltaT / deltaS);
+			res[i].w = 1.0;
+		}
 	}
 	return res;
+	*/
 }
 
 fn getBitMap(pointsLocal: array<vec4<f32>, 8>) -> u32 {
 	var res: u32 = 0;
 	for (var i : u32 = 0; i < 8; i++) {
-		res <<= 1;
+		res >>= 1;
 		if (pointsLocal[i].w > THRESHOLD) {
-			res |= 1;
+			res |= 1 << 7;
 		}
 	}
 	return res;
@@ -55,7 +69,9 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>,
         edges[10] = vec2(3, 7);
         edges[11] = vec2(2, 6);
 
+
 	var pointsLocal : array<vec4<f32>, 8>;
+	
 	pointsLocal[0] = points[getPointIndex(id.x, id.y, id.z, groupCount)]; // TODO figure out how to pass by ref  
 	pointsLocal[1] = points[getPointIndex(id.x + 1, id.y, id.z, groupCount)]; 
 	pointsLocal[2] = points[getPointIndex(id.x, id.y + 1, id.z, groupCount)]; 
@@ -65,6 +81,17 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>,
 	pointsLocal[6] = points[getPointIndex(id.x, id.y + 1, id.z + 1, groupCount)]; 
 	pointsLocal[7] = points[getPointIndex(id.x + 1, id.y + 1, id.z + 1, groupCount)]; 
 
+/*	
+	pointsLocal[0] = points[getPointIndex(id.x + 1, id.y + 1, id.z + 1, groupCount)];
+	pointsLocal[1] = points[getPointIndex(id.x, id.y + 1, id.z + 1, groupCount)];
+	pointsLocal[2] = points[getPointIndex(id.x + 1, id.y, id.z + 1, groupCount)];
+	pointsLocal[3] = points[getPointIndex(id.x, id.y, id.z + 1, groupCount)];
+	pointsLocal[4] = points[getPointIndex(id.x + 1, id.y + 1, id.z, groupCount)];
+	pointsLocal[5] = points[getPointIndex(id.x, id.y + 1, id.z, groupCount)];
+	pointsLocal[6] = points[getPointIndex(id.x + 1, id.y, id.z, groupCount)];
+	pointsLocal[7] = points[getPointIndex(id.x, id.y, id.z, groupCount)];
+*/
+
 	var interpolations: array<vec4<f32>, 12> = interp(edges, pointsLocal);
 	var triangulationTableOffset: u32 = getBitMap(pointsLocal) * 12;
 	var sparseMeshOffset = (id.x + id.y * groupCount.x + id.z * groupCount.x * groupCount.y) * 12;
@@ -73,7 +100,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>,
 		if (pointIndex == -1) {
 			sparseMesh[sparseMeshOffset + i] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 		} else {
-			sparseMesh[sparseMeshOffset + i] = interpolations[i];
+			sparseMesh[sparseMeshOffset + i] = interpolations[pointIndex];
 		}
 	}
 
