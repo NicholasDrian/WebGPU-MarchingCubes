@@ -2,11 +2,10 @@
 import perlinNoiseShader from "./perlinNoiseShader.wgsl";
 import marchingCubesShader from "./marchingCubesShader.wgsl"
 import { triangulationTable } from "./data"
-import { Mesh } from "./mesh"
 
-const xSamples: number = 16;
+const xSamples: number = 64;
 const ySamples: number = 64;
-const zSamples: number = 16;
+const zSamples: number = 64;
 
 
 export class MeshGenerator {
@@ -168,11 +167,9 @@ export class MeshGenerator {
 
 	public async generateMesh() : Promise<Float32Array> {
 
-
-
 		const encoder = this.device.createCommandEncoder();
-
 		const computePass = encoder.beginComputePass();
+
 		computePass.setPipeline(this.perlinNoisePipeline);
 		computePass.setBindGroup(0, this.perlinNoiseBindGroup);
 		computePass.dispatchWorkgroups(xSamples, ySamples, zSamples);
@@ -180,9 +177,8 @@ export class MeshGenerator {
 		computePass.setPipeline(this.marchingCubesPipeline);
 		computePass.setBindGroup(0, this.marchingCubesBindGroup);
 		computePass.dispatchWorkgroups(xSamples - 1, ySamples - 1, zSamples - 1);
-		computePass.end();
 
-	
+		computePass.end();
 
 		encoder.copyBufferToBuffer(this.sparseMeshBuffer, 0, this.outputBuffer, 0, (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 16 * 4 * 4);
 

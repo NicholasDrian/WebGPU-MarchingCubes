@@ -3,7 +3,7 @@
 @binding(2) @group(0) var<storage, read_write> sparseMesh: array<vec4<f32>>;
 
 
-const THRESHOLD: f32 = 0.7; 
+const THRESHOLD: f32 = 0.5; 
 
 fn getPointIndex(x: u32, y: u32, z: u32, groupCount: vec3<u32>) -> u32 {
 	return
@@ -69,28 +69,11 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>,
 	pointsLocal[6] = points[getPointIndex(id.x, id.y + 1, id.z + 1, groupCount)]; 
 	pointsLocal[7] = points[getPointIndex(id.x + 1, id.y + 1, id.z + 1, groupCount)]; 
 
-/*	
-	pointsLocal[0] = points[getPointIndex(id.x + 1, id.y + 1, id.z + 1, groupCount)];
-	pointsLocal[1] = points[getPointIndex(id.x, id.y + 1, id.z + 1, groupCount)];
-	pointsLocal[2] = points[getPointIndex(id.x + 1, id.y, id.z + 1, groupCount)];
-	pointsLocal[3] = points[getPointIndex(id.x, id.y, id.z + 1, groupCount)];
-	pointsLocal[4] = points[getPointIndex(id.x + 1, id.y + 1, id.z, groupCount)];
-	pointsLocal[5] = points[getPointIndex(id.x, id.y + 1, id.z, groupCount)];
-	pointsLocal[6] = points[getPointIndex(id.x + 1, id.y, id.z, groupCount)];
-	pointsLocal[7] = points[getPointIndex(id.x, id.y, id.z, groupCount)];
-*/
-
 	var interpolations: array<vec4<f32>, 12> = interp(edges, pointsLocal);
 	var triangulationTableOffset: u32 = getBitMap(pointsLocal) * 12;
 	var sparseMeshOffset = (id.x + id.y * groupCount.x + id.z * groupCount.x * groupCount.y) * 16;
-	/*for (var i: u32 = 0; i < 12; i++) {
-		var pointIndex = triangulationTable[triangulationTableOffset + i];
-		if (pointIndex == -1) {
-			sparseMesh[sparseMeshOffset + i] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-		} else {
-			sparseMesh[sparseMeshOffset + i] = interpolations[pointIndex];
-		}
-	}*/
+
+
 	for (var i: u32 = 0; i < 4; i++) { // for each triangle
 		if (triangulationTable[triangulationTableOffset + 3 * i] != -1) {
 			var a : vec4<f32> = interpolations[triangulationTable[triangulationTableOffset + 3 * i]];
@@ -103,17 +86,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>,
 		} else {
 			sparseMesh[sparseMeshOffset + (4 * i)] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 		}
-/*
-		for (var j: u32 = 0; j < 3; j++) { // for each vert
-			pointIndex = triangulationTable[triangulationTableOffset + (3 * i) + j];
-			if (pointIndex == -1) {
-				sparseMesh[sparseMeshOffset + (4 * i) + j] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-			} else {
-				sparseMesh[sparseMeshOffset + (4 * i) + j] = interpolations[pointIndex];
-			}
-		}
-		// add normal
-		vec4<f32> ab = sparseMesh[sparseMeshOffse + 4 * 1]*/
+
 	}
 
 
