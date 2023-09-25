@@ -14,30 +14,18 @@ fn getPointIndex(x: u32, y: u32, z: u32, groupCount: vec3<u32>) -> u32 {
 
 
 fn interp(edges: array<vec2<u32>, 12>, pointsLocal: array<vec4<f32>, 8>) -> array<vec4<f32>, 12> {
-	var res: array<vec4<f32>, 12>;
-	for (var i : u32 = 0; i < 12; i++) {
-		var a: vec4<f32> = pointsLocal[edges[i][0]];
-		var b: vec4<f32> = pointsLocal[edges[i][1]];
-		res[i] = (a + b) * 0.5;
-
-	}
-	return res;
-	/*
+	
 	var res : array<vec4<f32>, 12>;
 	for (var i: u32 = 0; i < 12; i++) {
 		var a: vec4<f32> = pointsLocal[edges[i][0]];
 		var b: vec4<f32> = pointsLocal[edges[i][1]];
 		var deltaS: f32 = b.w - a.w;
-		if (deltaS < 0.01) { // TODO: there must be a better way??
-			res[i] = a;
-		} else {
-			var deltaT: f32 = THRESHOLD - a.w;
-			res[i] = a + (b - a) * (deltaT / deltaS);
-			res[i].w = 1.0;
-		}
+		var deltaT: f32 = THRESHOLD - a.w;
+		res[i] = a + (b - a) * (deltaT / deltaS);
+		res[i].w = 1.0;
 	}
 	return res;
-	*/
+	
 }
 
 fn getBitMap(pointsLocal: array<vec4<f32>, 8>) -> u32 {
@@ -94,15 +82,40 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>,
 
 	var interpolations: array<vec4<f32>, 12> = interp(edges, pointsLocal);
 	var triangulationTableOffset: u32 = getBitMap(pointsLocal) * 12;
-	var sparseMeshOffset = (id.x + id.y * groupCount.x + id.z * groupCount.x * groupCount.y) * 12;
-	for (var i: u32 = 0; i < 12; i++) {
+	var sparseMeshOffset = (id.x + id.y * groupCount.x + id.z * groupCount.x * groupCount.y) * 16;
+	/*for (var i: u32 = 0; i < 12; i++) {
 		var pointIndex = triangulationTable[triangulationTableOffset + i];
 		if (pointIndex == -1) {
 			sparseMesh[sparseMeshOffset + i] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 		} else {
 			sparseMesh[sparseMeshOffset + i] = interpolations[pointIndex];
 		}
+	}*/
+	for (var i: u32 = 0; i < 4; i++) { // for each triangle
+		if (triangulationTable[triangulationTableOffset + 3 * i] != -1) {
+			var a : vec4<f32> = interpolations[triangulationTable[triangulationTableOffset + 3 * i]];
+			var b : vec4<f32> = interpolations[triangulationTable[triangulationTableOffset + 3 * i + 1]];
+			var c : vec4<f32> = interpolations[triangulationTable[triangulationTableOffset + 3 * i + 2]];
+			sparseMesh[sparseMeshOffset + (4 * i)] = a;
+			sparseMesh[sparseMeshOffset + (4 * i + 1)] = b;
+			sparseMesh[sparseMeshOffset + (4 * i + 2)] = c;
+			sparseMesh[sparseMeshOffset + (4 * i + 3)] = vec4(cross((b - a).xyz, (c - a).xyz), 1.0);
+		} else {
+			sparseMesh[sparseMeshOffset + (4 * i)] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+		}
+/*
+		for (var j: u32 = 0; j < 3; j++) { // for each vert
+			pointIndex = triangulationTable[triangulationTableOffset + (3 * i) + j];
+			if (pointIndex == -1) {
+				sparseMesh[sparseMeshOffset + (4 * i) + j] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+			} else {
+				sparseMesh[sparseMeshOffset + (4 * i) + j] = interpolations[pointIndex];
+			}
+		}
+		// add normal
+		vec4<f32> ab = sparseMesh[sparseMeshOffse + 4 * 1]*/
 	}
+
 
 }
 

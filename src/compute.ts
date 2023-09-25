@@ -88,7 +88,7 @@ export class MeshGenerator {
 		});
 		this.sparseMeshBuffer = this.device.createBuffer({
 			label: "sparse mesh buffer",
-			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4,
+			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 16 * 4 * 4,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC, // remove after debug
 		});
 		this.triangulationBuffer = this.device.createBuffer({
@@ -98,7 +98,7 @@ export class MeshGenerator {
 		});
 		this.outputBuffer = this.device.createBuffer({
 			label: "debug buffer",
-			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4,
+			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 16 * 4 * 4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
 		});
 		this.device.queue.writeBuffer(this.triangulationBuffer, 0, triangulationTable, 0, triangulationTable.length);
@@ -184,7 +184,7 @@ export class MeshGenerator {
 
 	
 
-		encoder.copyBufferToBuffer(this.sparseMeshBuffer, 0, this.outputBuffer, 0, (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 12 * 4 * 4);
+		encoder.copyBufferToBuffer(this.sparseMeshBuffer, 0, this.outputBuffer, 0, (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 16 * 4 * 4);
 
 		this.device.queue.submit([encoder.finish()]);
 

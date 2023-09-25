@@ -2,10 +2,10 @@
 
 export class Mesh {
 	
-	private vertexBuffer! : GPUBuffer;
-	private vertexBufferLayout! : GPUVertexBufferLayout;
-	private indexBuffer! : GPUBuffer; // todo remove question marks
-	private indices! : Int32Array;
+	private vertexBuffer : GPUBuffer;
+	private vertexBufferLayout : GPUVertexBufferLayout;
+	private indexBuffer : GPUBuffer;
+	private indices : Int32Array;
 	
 	constructor(
 		private device: GPUDevice,
@@ -13,42 +13,75 @@ export class Mesh {
 		indices?: Int32Array) {
 
 		if (!indices) { // sparse mesh
-			/*
-			var count = 0;
-			for (var i = 0; i < vertices.length; i += 4) {
-				console.log(vertices[i], vertices[i + 1], vertices[i + 2], vertices[i + 3]);
-				if (vertices[i] > 100) count++;
-				if (vertices[i + 1] > 100) count++;
-				if (vertices[i + 2] > 100) count++;
-				if (vertices[i + 3] > 100) count++;
-			}
-			console.log(count);
-			*/
+
 			var newIndices: number[] = [];
 			var newVertices: number[] = [];
-			var pointMap = new Map<[number, number, number], number>();
+			var normals: number[] = [];
+			var pointMap = new Map<string, number>(); 
+			
 
-			for (var i = 0; i < vertices.length; i += 4) {
-				var point: [number, number, number] = [
-					vertices[i],
-					vertices[i + 1],
-					vertices[i + 2]
-				]; // todo skip empty
-				if (!pointMap.has(point)) {
-					pointMap.set(point, newVertices.length / 8);
-					newIndices.push(newVertices.length / 8);
-					newVertices.push(point[0]);
-					newVertices.push(point[1]);
-					newVertices.push(point[2]);
-					newVertices.push(1);
-					newVertices.push(1);
-					newVertices.push(0.2);
-					newVertices.push(0.5);
-					newVertices.push(1);
-				} else {
-					newIndices.push(pointMap.get(point)!);
-				}
+			for (var i = 0; i < vertices.length; i += 16) {
+				if (vertices[i + 3] != 0) { // triangle found
+					const a: [number, number, number] = [vertices[i + 0], vertices[i + 1], vertices[i + 2]];
+					const b: [number, number, number] = [vertices[i + 4], vertices[i + 5], vertices[i + 6]];
+					const c: [number, number, number] = [vertices[i + 8], vertices[i + 9], vertices[i + 10]];
+					const n: [number, number, number] = [vertices[i + 12], vertices[i + 13], vertices[i + 14]];
+
+					const aStr = a.toString();
+					const bStr = b.toString();
+					const cStr = c.toString();
+
+					if (!pointMap.has(aStr)) {
+						newIndices.push(newVertices.length / 8);
+						pointMap.set(aStr, newVertices.length / 8);
+						newVertices.push(...a, 1.0);
+						newVertices.push(0.0, 0.0, 0.0, 0.0);
+					} else newIndices.push(pointMap.get(aStr)!);
+					if (!pointMap.has(bStr)) {
+						newIndices.push(newVertices.length / 8); 
+						pointMap.set(bStr, newVertices.length / 8);
+						newVertices.push(...b, 1.0); 
+						newVertices.push(0.0, 0.0, 0.0, 0.0);
+					} else newIndices.push(pointMap.get(bStr)!);
+					if (!pointMap.has(cStr)) { 
+						newIndices.push(newVertices.length / 8);
+						pointMap.set(cStr, newVertices.length / 8);
+						newVertices.push(...c, 1.0);
+						newVertices.push(0.0, 0.0, 0.0, 0.0);
+					} else newIndices.push(pointMap.get(cStr)!);
+					normals.push(...n, 1);
+
+				} 
+
 			}
+
+			for (var i = 0; i < normals.length / 4; i++) { // add normals to corresponding vertices
+				const indexA = newIndices[3 * i];
+				const indexB = newIndices[3 * i + 1];
+				const indexC = newIndices[3 * i + 2];
+				newVertices[indexA * 8 + 4] += normals[i * 4 + 0];
+				newVertices[indexA * 8 + 5] += normals[i * 4 + 1];
+				newVertices[indexA * 8 + 6] += normals[i * 4 + 2];
+				newVertices[indexB * 8 + 4] += normals[i * 4 + 0];
+				newVertices[indexB * 8 + 5] += normals[i * 4 + 1];
+				newVertices[indexB * 8 + 6] += normals[i * 4 + 2];
+				newVertices[indexC * 8 + 4] += normals[i * 4 + 0];
+				newVertices[indexC * 8 + 5] += normals[i * 4 + 1];
+				newVertices[indexC * 8 + 6] += normals[i * 4 + 2];
+			}
+
+			for (var i = 0; i < newVertices.length; i += 8) { // normalize normals	
+				var size = Math.sqrt(
+					newVertices[i + 4] * newVertices[i + 4] +
+					newVertices[i + 5] * newVertices[i + 5] +
+					newVertices[i + 6] * newVertices[i + 6] 
+				);	
+				newVertices[i + 4] /= size;
+				newVertices[i + 5] /= size;
+				newVertices[i + 6] /= size;
+				newVertices[i + 7] = 1.0;
+			}
+
 			this.indices = new Int32Array(newIndices);
 			this.vertices = new Float32Array(newVertices);
 		} else {
