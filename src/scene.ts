@@ -37,8 +37,8 @@ export class Scene {
 	}
 
 	public async tick(): Promise<void> {
+
 		this.camera.tick();
-		console.log(1);
 		
 		const position = this.camera.getPosition();
 		const x: number = position[0];
@@ -72,8 +72,6 @@ export class Scene {
 			}
 		}
 		
-	//	this.meshMap.set("0,0", await this.meshGenerator.generateMesh([0,0,0], [1,1,1], this.renderDevice));
-
 	}
 
 	public getCamera(): Camera {
