@@ -1,9 +1,7 @@
 
 import shader from "./shader.wgsl";
-import { debugCubeVerts } from "./debugCube";
-import { Camera } from "./camera";
-import { vec3 } from "wgpu-matrix";
 import { Mesh } from "./mesh"
+import { Scene } from "./scene"
 
 const compatibilityCheck : HTMLElement = <HTMLElement> document.getElementById("compatibility-check");
 
@@ -14,7 +12,6 @@ export class Renderer {
 	private canvas!: HTMLCanvasElement;
 	private canvasFormat!: GPUTextureFormat;
 	private shaderModule!: GPUShaderModule;
-	private camera!: Camera;
 	private viewProjBuffer!: GPUBuffer;
 	private pipeline!: GPURenderPipeline;
 	private depthTexture!: GPUTexture;
@@ -60,13 +57,6 @@ export class Renderer {
 
 	private createResources() {
 
-		this.camera = new Camera(
-			vec3.create(0.0, 0.0, -20.0),	//position
-			vec3.create(0.0, 1.0, 0.0),	//up
-			vec3.create(0.0, 0.0, 1.0),	//forward
-			2,		//fovy
-			this.canvas.clientWidth / this.canvas.clientHeight //aspect
-		);	
 
 		this.shaderModule = this.device.createShaderModule({
 			label: "shader module",
@@ -84,13 +74,11 @@ export class Renderer {
 			]
 		});
 
-		const viewProj : Float32Array = this.camera.getViewProj();
 		this.viewProjBuffer = this.device.createBuffer({
 			label: "view proj buffer",
-			size: viewProj.byteLength,
+			size: 64,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
-		this.device.queue.writeBuffer(this.viewProjBuffer, 0, viewProj);
 
 		this.bindGroup = this.device.createBindGroup({
 			label: "bind group",
@@ -147,39 +135,41 @@ export class Renderer {
 
 	}
 
-	async render(mesh: Mesh) {
-	
-		this.camera.tick();
-		this.device.queue.writeBuffer(this.viewProjBuffer, 0, this.camera.getViewProj());
+	async render(scene: Scene) {
+		// TODO: hoise some stuff out of loop	
+		this.device.queue.writeBuffer(this.viewProjBuffer, 0, scene.getCamera().getViewProj());
+		for (let mesh of scene.getMeshes()) {
 
-		const encoder: GPUCommandEncoder = this.device.createCommandEncoder();
-		const pass: GPURenderPassEncoder = encoder.beginRenderPass({
-			colorAttachments: [
-				{
-					view: this.context.getCurrentTexture().createView(),
-					loadOp: "clear",
-					clearValue: [0.7,0.8,1,1],
-					storeOp: "store",
-				},
-			],
-			depthStencilAttachment: {
-				view: this.depthTexture.createView(),
-				depthClearValue: 1.0,
-				depthLoadOp: "clear",
-				depthStoreOp: "store"
-			}
-		});
+			const encoder: GPUCommandEncoder = this.device.createCommandEncoder();
+			const pass: GPURenderPassEncoder = encoder.beginRenderPass({
+				colorAttachments: [
+					{
+						view: this.context.getCurrentTexture().createView(),
+						loadOp: "clear",
+						clearValue: [0.7,0.8,1,1],
+						storeOp: "store",
+					},
+				],
+				depthStencilAttachment: {
+					view: this.depthTexture.createView(),
+					depthClearValue: 1.0,
+					depthLoadOp: "clear",
+					depthStoreOp: "store"
+				}
+			});
 
-		pass.setPipeline(this.pipeline);
-		pass.setBindGroup(0, this.bindGroup);
-		pass.setVertexBuffer(0, mesh.getVertexBuffer());
-		pass.setIndexBuffer(mesh.getIndexBuffer(), "uint32");
-		pass.drawIndexed(mesh.getIndexCount());
-		pass.end();
-		const commandBuffer = encoder.finish();
-		this.device.queue.submit([commandBuffer]);
+			pass.setPipeline(this.pipeline);
+			pass.setBindGroup(0, this.bindGroup);
+			pass.setVertexBuffer(0, mesh.getVertexBuffer());
+			pass.setIndexBuffer(mesh.getIndexBuffer(), "uint32");
+			pass.drawIndexed(mesh.getIndexCount());
+			pass.end();
+			const commandBuffer = encoder.finish();
+			this.device.queue.submit([commandBuffer]);
 
-		await this.device.queue.onSubmittedWorkDone();
+			await this.device.queue.onSubmittedWorkDone();
+		};
+
 	}
 
 }

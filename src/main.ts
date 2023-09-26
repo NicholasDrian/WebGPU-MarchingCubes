@@ -1,6 +1,7 @@
 import { Renderer } from "./renderer"
 import { MeshGenerator } from "./compute"
 import { Mesh } from "./mesh";
+import { Scene } from "./scene";
 
 
 const init = async function() {
@@ -8,14 +9,14 @@ const init = async function() {
 	const renderer : Renderer = new Renderer();
 	await renderer.init();
 	
-	const meshGenerator : MeshGenerator = new MeshGenerator();
-	await meshGenerator.init();
 
+	const scene: Scene = new Scene(renderer.getDevice());
+	await scene.init();
 
 	while (true) {
 
-		const mesh: Mesh = await meshGenerator.generateMesh([0, 0, 0], [1, 1, 1], renderer.getDevice());
-		await renderer.render(mesh);
+		await scene.tick();
+		await renderer.render(scene);
 	}
 }
 

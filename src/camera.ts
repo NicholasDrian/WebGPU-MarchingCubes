@@ -17,8 +17,8 @@ export class Camera {
 		private position: Vec3, 
 		private up: Vec3, 
 		private forward: Vec3, 
-		private fovy: number,
-		private aspect: number) 
+		private fovy: number, 
+		private screen: HTMLCanvasElement)
 	{
 		this.up = vec3.normalize(this.up);
 		this.lastFrameTime = performance.now(); 
@@ -32,10 +32,14 @@ export class Camera {
 	        const viewProj = new Float32Array(16);
 
 		mat4.lookAt(this.position, vec3.add(this.position, this.forward), this.up, view);
-		mat4.perspective(this.fovy, this.aspect, 0.1, 1000.0, proj);
+		mat4.perspective(this.fovy, this.screen.width / this.screen.height, 0.1, 1000.0, proj);
 		mat4.multiply(proj, view, viewProj);
 		return viewProj;
 
+	}
+
+	getPosition(): Vec3 {
+		return this.position;
 	}
 
 	addEvents() {
