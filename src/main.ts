@@ -1,26 +1,22 @@
 import { Renderer } from "./renderer"
 import { MeshGenerator } from "./compute"
+import { Mesh } from "./mesh";
 
 
 const init = async function() {
 
-/*	var str: string = '';
-	for (var i : number = 0; i < TriangleTable.length; i++) {
-		for (var j : number = 0; j < 12; j++) {
-			if (TriangleTable[i].length <= j) str += '-1, ';
-			else str += TriangleTable[i][j] + ', ';
-		}
-		str += '\n';
-	}
-	console.log(str);
-	return;
-*/
-	const compute : MeshGenerator = new MeshGenerator();
-	await compute.init();
-	const sparseMeshArray: Float32Array = await compute.generateMesh();
 	const renderer : Renderer = new Renderer();
-	renderer.init(sparseMeshArray);
+	await renderer.init();
+	
+	const meshGenerator : MeshGenerator = new MeshGenerator();
+	await meshGenerator.init();
 
+
+	while (true) {
+
+		const mesh: Mesh = await meshGenerator.generateMesh([0, 0, 0], [1, 1, 1], renderer.getDevice());
+		await renderer.render(mesh);
+	}
 }
 
 init();

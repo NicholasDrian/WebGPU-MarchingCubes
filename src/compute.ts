@@ -2,7 +2,7 @@
 import perlinNoiseShader from "./perlinNoiseShader.wgsl";
 import marchingCubesShader from "./marchingCubesShader.wgsl"
 import { triangulationTable } from "./data"
-import { time } from "console";
+import { Mesh } from "./mesh"; 
 
 const xSamples: number = 64;
 const ySamples: number = 64;
@@ -107,7 +107,7 @@ export class MeshGenerator {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 		this.outputBuffer = this.device.createBuffer({
-			label: "debug buffer",
+			label: "output buffer",
 			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 16 * 4 * 4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
 		});
@@ -179,7 +179,7 @@ export class MeshGenerator {
 		});
 	}
 
-	public async generateMesh(center: [number, number, number] = [0,0,0], cubeSize: [number, number, number] = [1,1,1]) : Promise<Float32Array> {
+	public async generateMesh(center: [number, number, number] = [0,0,0], cubeSize: [number, number, number] = [1,1,1], device: GPUDevice) : Promise<Mesh> {
 
 		const startTime = Date.now();
 
@@ -202,15 +202,14 @@ export class MeshGenerator {
 
 		this.device.queue.submit([encoder.finish()]);
 
-
-		await this.device.queue.onSubmittedWorkDone();
-		const res: Float32Array = await this.outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
-			return new Float32Array(this.outputBuffer.getMappedRange());
+		const mesh: Mesh = await this.outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
+			const res: Mesh = new Mesh(device, new Float32Array(this.outputBuffer.getMappedRange()));
+			this.outputBuffer.unmap();
+			return res;
 		});
 
-		console.log("Sparse mesh generated in", Date.now() - startTime, "miliseconds.");
-
-		return res;
+		console.log("Mesh generated in", Date.now() - startTime, "miliseconds.");
+		return mesh;
 	}
 
 

@@ -2,8 +2,22 @@
 
 export class Mesh {
 	
+	private static readonly vertexBufferLayout : GPUVertexBufferLayout = {
+			arrayStride: 32,
+			attributes: [
+				{
+					format: "float32x4",
+					offset: 0,
+					shaderLocation : 0,
+				}, {
+					format: "float32x4",
+					offset: 16,
+					shaderLocation: 1,
+				}
+			]
+		};
+
 	private vertexBuffer : GPUBuffer;
-	private vertexBufferLayout : GPUVertexBufferLayout;
 	private indexBuffer : GPUBuffer;
 	private indices : Int32Array;
 	
@@ -11,8 +25,6 @@ export class Mesh {
 		private device: GPUDevice,
 		private vertices: Float32Array, 
 		indices?: Int32Array) {
-
-		const startTime = Date.now();
 
 		if (!indices) { // sparse mesh
 
@@ -104,22 +116,6 @@ export class Mesh {
 			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
 		});
 		this.device.queue.writeBuffer(this.indexBuffer, 0, this.indices!);
-		this.vertexBufferLayout = {
-			arrayStride: 32,
-			attributes: [
-				{
-					format: "float32x4",
-					offset: 0,
-					shaderLocation : 0,
-				}, {
-					format: "float32x4",
-					offset: 16,
-					shaderLocation: 1,
-				}
-			]
-		};
-
-		console.log("Created mesh from sparse mesh in", Date.now() - startTime, "miliseconds.");
 
 	}
 	
@@ -132,7 +128,7 @@ export class Mesh {
 		return this.indexBuffer;
 	}
 
-	getVertexBufferLayout() : GPUVertexBufferLayout {
+	static getVertexBufferLayout() : GPUVertexBufferLayout {
 		return this.vertexBufferLayout;
 	}
 

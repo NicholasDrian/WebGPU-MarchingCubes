@@ -20,17 +20,19 @@ export class Renderer {
 	private depthTexture!: GPUTexture;
 	private bindGroup!: GPUBindGroup;
 	private bindGroupLayout!: GPUBindGroupLayout;
-	private mesh!: Mesh;
 
 	constructor() {
 	}
 
-	async init(sparseMesh: Float32Array) {
+	public getDevice() {
+		return this.device;
+	}
+
+	async init() {
 
 		await this.createDevice();
-		this.createResources(sparseMesh);	
+		this.createResources();	
 		this.createPipeline();
-		this.render();
 	}
 
 	private async createDevice() {
@@ -56,7 +58,7 @@ export class Renderer {
 
 	}
 
-	private createResources(sparseMesh: Float32Array) {
+	private createResources() {
 
 		this.camera = new Camera(
 			vec3.create(0.0, 0.0, -20.0),	//position
@@ -66,21 +68,6 @@ export class Renderer {
 			this.canvas.clientWidth / this.canvas.clientHeight //aspect
 		);	
 
-		this.mesh = new Mesh(this.device, sparseMesh);
-	/*	
-		this.mesh = new Mesh(this.device, 
-			new Float32Array([
-				-1.0, -1.0, 0.0, 1.0,   1.0, 1.0, 1.0, 1.0,				
-				-1.0, 1.0, 0.0, 1.0,   0.0, 0.0, 1.0, 1.0,				
-				1.0, 1.0, 0.0, 1.0,   0.0, 1.0, 0.0, 1.0,				
-				1.0, -1.0, 0.0, 1.0,   1.0, 0.0, 0.0, 1.0,				
-			]),
-			new Int32Array([
-				0, 1, 2,
-				2, 3, 0,
-			])
-		);
-*/
 		this.shaderModule = this.device.createShaderModule({
 			label: "shader module",
 			code: shader,
@@ -111,7 +98,7 @@ export class Renderer {
 			entries: [
 				{
 					binding: 0,
-				resource: { buffer: this.viewProjBuffer },
+					resource: { buffer: this.viewProjBuffer },
 				}
 			]
 		});
@@ -145,7 +132,7 @@ export class Renderer {
 			vertex: {
 				module: this.shaderModule,
 				entryPoint: "vertexMain",
-				buffers: [this.mesh.getVertexBufferLayout()]
+				buffers: [Mesh.getVertexBufferLayout()]
 			},
 			fragment: {
 				module: this.shaderModule,
@@ -160,7 +147,7 @@ export class Renderer {
 
 	}
 
-	private render() {
+	async render(mesh: Mesh) {
 	
 		this.camera.tick();
 		this.device.queue.writeBuffer(this.viewProjBuffer, 0, this.camera.getViewProj());
@@ -171,7 +158,7 @@ export class Renderer {
 				{
 					view: this.context.getCurrentTexture().createView(),
 					loadOp: "clear",
-					clearValue: [0,0,0.4,1],
+					clearValue: [0.7,0.8,1,1],
 					storeOp: "store",
 				},
 			],
@@ -185,13 +172,14 @@ export class Renderer {
 
 		pass.setPipeline(this.pipeline);
 		pass.setBindGroup(0, this.bindGroup);
-		pass.setVertexBuffer(0, this.mesh.getVertexBuffer());
-		pass.setIndexBuffer(this.mesh.getIndexBuffer(), "uint32");
-		pass.drawIndexed(this.mesh.getIndexCount());
+		pass.setVertexBuffer(0, mesh.getVertexBuffer());
+		pass.setIndexBuffer(mesh.getIndexBuffer(), "uint32");
+		pass.drawIndexed(mesh.getIndexCount());
 		pass.end();
 		const commandBuffer = encoder.finish();
 		this.device.queue.submit([commandBuffer]);
-		this.device.queue.onSubmittedWorkDone().then(() => {this.render();});
+
+		await this.device.queue.onSubmittedWorkDone();
 	}
 
 }
