@@ -12,6 +12,8 @@ export class Mesh {
 		private vertices: Float32Array, 
 		indices?: Int32Array) {
 
+		const startTime = Date.now();
+
 		if (!indices) { // sparse mesh
 
 			var newIndices: number[] = [];
@@ -84,6 +86,7 @@ export class Mesh {
 
 			this.indices = new Int32Array(newIndices);
 			this.vertices = new Float32Array(newVertices);
+
 		} else {
 			this.indices = new Int32Array(indices);
 		}
@@ -115,6 +118,9 @@ export class Mesh {
 				}
 			]
 		};
+
+		console.log("Created mesh from sparse mesh in", Date.now() - startTime, "miliseconds.");
+
 	}
 	
 

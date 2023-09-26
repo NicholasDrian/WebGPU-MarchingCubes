@@ -2,6 +2,7 @@
 import perlinNoiseShader from "./perlinNoiseShader.wgsl";
 import marchingCubesShader from "./marchingCubesShader.wgsl"
 import { triangulationTable } from "./data"
+import { time } from "console";
 
 const xSamples: number = 64;
 const ySamples: number = 64;
@@ -23,6 +24,7 @@ export class MeshGenerator {
 	private sparseMeshBuffer!: GPUBuffer;
 	private outputBuffer!: GPUBuffer;
 	private triangulationBuffer!: GPUBuffer;
+	private perlinNoiseUniformBuffer!: GPUBuffer;
 
 	private perlinNoisePipeline!: GPUComputePipeline;
 	private marchingCubesPipeline!: GPUComputePipeline;
@@ -57,7 +59,11 @@ export class MeshGenerator {
 				{
 					binding: 0, // perlin noise sample buffer
 					visibility: GPUShaderStage.COMPUTE,
-					buffer: { type: "storage" }
+					buffer: { type: "storage" },
+				}, {
+					binding: 1,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: { type: "uniform" }
 				}
 			]
 		});
@@ -83,12 +89,17 @@ export class MeshGenerator {
 		this.pointBuffer = this.device.createBuffer({
 			label: "point buffer",
 			size: xSamples * ySamples * zSamples * 4 * 4,
-			usage: GPUBufferUsage.STORAGE  | GPUBufferUsage.COPY_SRC, // remove after debug
+			usage: GPUBufferUsage.STORAGE 
+		});
+		this.perlinNoiseUniformBuffer = this.device.createBuffer({
+			label: "perlin noise unifrom buffer",
+			size: 16 * 2, // two vec4<f32>
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, // could use buffer copy for speeeeed
 		});
 		this.sparseMeshBuffer = this.device.createBuffer({
 			label: "sparse mesh buffer",
 			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 16 * 4 * 4,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC, // remove after debug
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
 		});
 		this.triangulationBuffer = this.device.createBuffer({
 			label: "triangulation buffer",
@@ -109,6 +120,9 @@ export class MeshGenerator {
 				{
 					binding: 0, 
 					resource: { buffer: this.pointBuffer },
+				},{
+					binding: 1,
+					resource: { buffer: this.perlinNoiseUniformBuffer },
 				}
 			]
 		});
@@ -165,7 +179,11 @@ export class MeshGenerator {
 		});
 	}
 
-	public async generateMesh() : Promise<Float32Array> {
+	public async generateMesh(center: [number, number, number] = [0,0,0], cubeSize: [number, number, number] = [1,1,1]) : Promise<Float32Array> {
+
+		const startTime = Date.now();
+
+		this.device.queue.writeBuffer(this.perlinNoiseUniformBuffer, 0, new Float32Array([...center, 0, ...cubeSize, 0]));
 
 		const encoder = this.device.createCommandEncoder();
 		const computePass = encoder.beginComputePass();
@@ -189,6 +207,9 @@ export class MeshGenerator {
 		const res: Float32Array = await this.outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
 			return new Float32Array(this.outputBuffer.getMappedRange());
 		});
+
+		console.log("Sparse mesh generated in", Date.now() - startTime, "miliseconds.");
+
 		return res;
 	}
 

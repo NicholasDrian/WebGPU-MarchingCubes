@@ -57,9 +57,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>,
         edges[10] = vec2(3, 7);
         edges[11] = vec2(2, 6);
 
-
 	var pointsLocal : array<vec4<f32>, 8>;
-	
 	pointsLocal[0] = points[getPointIndex(id.x, id.y, id.z, groupCount)]; // TODO figure out how to pass by ref  
 	pointsLocal[1] = points[getPointIndex(id.x + 1, id.y, id.z, groupCount)]; 
 	pointsLocal[2] = points[getPointIndex(id.x, id.y + 1, id.z, groupCount)]; 
