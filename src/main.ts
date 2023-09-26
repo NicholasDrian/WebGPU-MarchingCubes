@@ -1,15 +1,14 @@
 import { Renderer } from "./renderer"
-import { MeshGenerator } from "./compute"
-import { Mesh } from "./mesh";
 import { Scene } from "./scene";
 
 
+console.log("wtf");
 const init = async function() {
 
 	const renderer : Renderer = new Renderer();
 	await renderer.init();
 	
-
+console.log(0);
 	const scene: Scene = new Scene(renderer.getDevice());
 	await scene.init();
 

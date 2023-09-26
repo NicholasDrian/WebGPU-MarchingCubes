@@ -3,10 +3,8 @@ import perlinNoiseShader from "./perlinNoiseShader.wgsl";
 import marchingCubesShader from "./marchingCubesShader.wgsl"
 import { triangulationTable } from "./data"
 import { Mesh } from "./mesh"; 
+import * as Globals from "./globalParameters"
 
-const xSamples: number = 64;
-const ySamples: number = 64;
-const zSamples: number = 64;
 
 
 export class MeshGenerator {
@@ -88,7 +86,7 @@ export class MeshGenerator {
 		});
 		this.pointBuffer = this.device.createBuffer({
 			label: "point buffer",
-			size: xSamples * ySamples * zSamples * 4 * 4,
+			size: (Globals.CUBES_PER_CHUNK_H + 1) * (Globals.CUBES_PER_CHUNK_H + 1) * (Globals.CUBES_PER_CHUNK_V + 1) * 4 * 4,
 			usage: GPUBufferUsage.STORAGE 
 		});
 		this.perlinNoiseUniformBuffer = this.device.createBuffer({
@@ -98,7 +96,7 @@ export class MeshGenerator {
 		});
 		this.sparseMeshBuffer = this.device.createBuffer({
 			label: "sparse mesh buffer",
-			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 16 * 4 * 4,
+			size: Globals.CUBES_PER_CHUNK_H * Globals.CUBES_PER_CHUNK_H * Globals.CUBES_PER_CHUNK_V * 16 * 4 * 4,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
 		});
 		this.triangulationBuffer = this.device.createBuffer({
@@ -108,7 +106,7 @@ export class MeshGenerator {
 		});
 		this.outputBuffer = this.device.createBuffer({
 			label: "output buffer",
-			size: (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 16 * 4 * 4,
+			size: Globals.CUBES_PER_CHUNK_H * Globals.CUBES_PER_CHUNK_H * Globals.CUBES_PER_CHUNK_V * 16 * 4 * 4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
 		});
 		this.device.queue.writeBuffer(this.triangulationBuffer, 0, triangulationTable, 0, triangulationTable.length);
@@ -190,15 +188,15 @@ export class MeshGenerator {
 
 		computePass.setPipeline(this.perlinNoisePipeline);
 		computePass.setBindGroup(0, this.perlinNoiseBindGroup);
-		computePass.dispatchWorkgroups(xSamples, ySamples, zSamples);
+		computePass.dispatchWorkgroups(Globals.CUBES_PER_CHUNK_H + 1, Globals.CUBES_PER_CHUNK_H + 1, Globals.CUBES_PER_CHUNK_V + 1);
 
 		computePass.setPipeline(this.marchingCubesPipeline);
 		computePass.setBindGroup(0, this.marchingCubesBindGroup);
-		computePass.dispatchWorkgroups(xSamples - 1, ySamples - 1, zSamples - 1);
+		computePass.dispatchWorkgroups(Globals.CUBES_PER_CHUNK_H, Globals.CUBES_PER_CHUNK_H, Globals.CUBES_PER_CHUNK_V);
 
 		computePass.end();
 
-		encoder.copyBufferToBuffer(this.sparseMeshBuffer, 0, this.outputBuffer, 0, (xSamples - 1) * (ySamples - 1) * (zSamples - 1) * 16 * 4 * 4);
+		encoder.copyBufferToBuffer(this.sparseMeshBuffer, 0, this.outputBuffer, 0, Globals.CUBES_PER_CHUNK_H * Globals.CUBES_PER_CHUNK_H * Globals.CUBES_PER_CHUNK_V * 16 * 4 * 4);
 
 		this.device.queue.submit([encoder.finish()]);
 

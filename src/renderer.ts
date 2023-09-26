@@ -138,37 +138,41 @@ export class Renderer {
 	async render(scene: Scene) {
 		// TODO: hoise some stuff out of loop	
 		this.device.queue.writeBuffer(this.viewProjBuffer, 0, scene.getCamera().getViewProj());
+
+		const encoder: GPUCommandEncoder = this.device.createCommandEncoder();
+		const pass: GPURenderPassEncoder = encoder.beginRenderPass({
+			colorAttachments: [
+				{
+					view: this.context.getCurrentTexture().createView(),
+					loadOp: "clear",
+					clearValue: [0.7,0.8,1,1],
+					storeOp: "store",
+				},
+			],
+			depthStencilAttachment: {
+				view: this.depthTexture.createView(),
+				depthClearValue: 1.0,
+				depthLoadOp: "clear",
+				depthStoreOp: "store"
+			}
+		});
+
+		pass.setPipeline(this.pipeline);
+		pass.setBindGroup(0, this.bindGroup);
+
 		for (let mesh of scene.getMeshes()) {
 
-			const encoder: GPUCommandEncoder = this.device.createCommandEncoder();
-			const pass: GPURenderPassEncoder = encoder.beginRenderPass({
-				colorAttachments: [
-					{
-						view: this.context.getCurrentTexture().createView(),
-						loadOp: "clear",
-						clearValue: [0.7,0.8,1,1],
-						storeOp: "store",
-					},
-				],
-				depthStencilAttachment: {
-					view: this.depthTexture.createView(),
-					depthClearValue: 1.0,
-					depthLoadOp: "clear",
-					depthStoreOp: "store"
-				}
-			});
-
-			pass.setPipeline(this.pipeline);
-			pass.setBindGroup(0, this.bindGroup);
 			pass.setVertexBuffer(0, mesh.getVertexBuffer());
 			pass.setIndexBuffer(mesh.getIndexBuffer(), "uint32");
 			pass.drawIndexed(mesh.getIndexCount());
-			pass.end();
-			const commandBuffer = encoder.finish();
-			this.device.queue.submit([commandBuffer]);
-
-			await this.device.queue.onSubmittedWorkDone();
 		};
+
+
+		pass.end();
+		const commandBuffer = encoder.finish();
+		this.device.queue.submit([commandBuffer]);
+
+		await this.device.queue.onSubmittedWorkDone();
 
 	}
 
