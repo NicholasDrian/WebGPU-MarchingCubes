@@ -206,7 +206,7 @@ export class MeshGenerator {
 			return res;
 		});
 
-		console.log("Mesh generated in", Date.now() - startTime, "miliseconds.");
+		console.log("Mesh with", mesh.getIndexCount() / 3, "tris &", mesh.getVertexCount(), "verts generated in", Date.now() - startTime, "ms.");
 		return mesh;
 	}
 

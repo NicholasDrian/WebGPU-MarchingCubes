@@ -80,7 +80,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>,
 			sparseMesh[sparseMeshOffset + (4 * i)] = a;
 			sparseMesh[sparseMeshOffset + (4 * i + 1)] = b;
 			sparseMesh[sparseMeshOffset + (4 * i + 2)] = c;
-			sparseMesh[sparseMeshOffset + (4 * i + 3)] = vec4(cross((b - a).xyz, (c - a).xyz), 1.0);
+			sparseMesh[sparseMeshOffset + (4 * i + 3)] = vec4(cross((c - a).xyz, (b - a).xyz), 1.0);
 		} else {
 			sparseMesh[sparseMeshOffset + (4 * i)] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 		}

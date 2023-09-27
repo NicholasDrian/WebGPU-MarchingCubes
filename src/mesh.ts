@@ -69,6 +69,7 @@ export class Mesh {
 
 			}
 
+			// check
 			for (var i = 0; i < normals.length / 4; i++) { // add normals to corresponding vertices
 				const indexA = newIndices[3 * i];
 				const indexB = newIndices[3 * i + 1];
@@ -134,6 +135,10 @@ export class Mesh {
 
 	getIndexCount() : number {
 		return this.indices.length;
+	}
+
+	getVertexCount() : number {
+		return this.vertices.length / 8;
 	}
 
 
