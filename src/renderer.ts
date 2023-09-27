@@ -135,8 +135,20 @@ export class Renderer {
 
 	}
 
+	private updateScreenSize(): void {
+		this.canvas.width = window.innerWidth;
+		this.canvas.height = window.innerHeight;
+		this.depthTexture = this.device.createTexture({
+			size: [this.canvas.width, this.canvas.height],
+			format: "depth24plus",
+			usage: GPUTextureUsage.RENDER_ATTACHMENT
+		});
+	}
+
 	async render(scene: Scene) {
-		// TODO: hoise some stuff out of loop	
+
+		this.updateScreenSize();
+
 		this.device.queue.writeBuffer(this.viewProjBuffer, 0, scene.getCamera().getViewProj());
 
 		const encoder: GPUCommandEncoder = this.device.createCommandEncoder();

@@ -74,6 +74,8 @@ export class Camera {
 
 
 	tick(): void {
+
+
 		var now : number = performance.now();
 		if (this.isTurningLeft) {
 			this.turnRight((this.lastFrameTime - now) / 500);
