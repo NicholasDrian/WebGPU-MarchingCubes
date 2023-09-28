@@ -173,7 +173,6 @@ export class Renderer {
 		pass.setBindGroup(0, this.bindGroup);
 
 		for (let mesh of scene.getMeshes()) {
-
 			pass.setVertexBuffer(0, mesh.getVertexBuffer());
 			pass.setIndexBuffer(mesh.getIndexBuffer(), "uint32");
 			pass.drawIndexed(mesh.getIndexCount());

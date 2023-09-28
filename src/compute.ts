@@ -27,14 +27,18 @@ export class MeshGenerator {
 	private perlinNoisePipeline!: GPUComputePipeline;
 	private marchingCubesPipeline!: GPUComputePipeline;
 
-	constructor() {
+	public busy: boolean;
 
+	constructor(
+	) {
+		this.busy = true; // busy until done with async init
 	}
 
 	async init() {
 		await this.setupDevice();
 		this.createResources();
 		this.createPipeline();
+		this.busy = false;
 	}
 
 	private async setupDevice() {
@@ -179,6 +183,7 @@ export class MeshGenerator {
 
 	public async generateMesh(center: [number, number, number] = [0,0,0], cubeSize: [number, number, number] = [1,1,1], device: GPUDevice) : Promise<Mesh> {
 
+		this.busy = true;
 		const startTime = Date.now();
 
 		this.device.queue.writeBuffer(this.perlinNoiseUniformBuffer, 0, new Float32Array([...center, 0, ...cubeSize, 0]));
@@ -201,12 +206,13 @@ export class MeshGenerator {
 		this.device.queue.submit([encoder.finish()]);
 
 		const mesh: Mesh = await this.outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
-			const res: Mesh = new Mesh(device, new Float32Array(this.outputBuffer.getMappedRange()));
+			const res: Mesh = new Mesh(center, device, new Float32Array(this.outputBuffer.getMappedRange()));
 			this.outputBuffer.unmap();
 			return res;
 		});
 
 		console.log("Mesh with", mesh.getIndexCount() / 3, "tris &", mesh.getVertexCount(), "verts generated in", Date.now() - startTime, "ms.");
+		this.busy = false;
 		return mesh;
 	}
 

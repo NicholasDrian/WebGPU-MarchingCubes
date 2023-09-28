@@ -76,8 +76,9 @@ fn samplePerlin(point: vec4<f32>, scale: f32) -> f32 {
 fn sample(point : vec4<f32>) -> f32 {
 
 	var res: f32 = 0.0;
-	res += samplePerlin(point, 20.0) * 0.9;
-	res += samplePerlin(point, 5.0) * 0.1;
+	res += samplePerlin(point, 30.0) * 0.90;
+	res += samplePerlin(point, 5.0) * 0.09;
+	res += samplePerlin(point, 1.0) * 0.01;
 	return res;
 	
 }

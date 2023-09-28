@@ -22,6 +22,7 @@ export class Mesh {
 	private indices : Int32Array;
 	
 	constructor(
+		private location: [number, number, number],
 		private device: GPUDevice,
 		private vertices: Float32Array, 
 		indices?: Int32Array) {
@@ -32,7 +33,6 @@ export class Mesh {
 			var newVertices: number[] = [];
 			var normals: number[] = [];
 			var pointMap = new Map<string, number>(); 
-			
 
 			for (var i = 0; i < vertices.length; i += 16) {
 				if (vertices[i + 3] != 0) { // triangle found
@@ -119,7 +119,10 @@ export class Mesh {
 		this.device.queue.writeBuffer(this.indexBuffer, 0, this.indices!);
 
 	}
-	
+
+	getLocation(): [number, number, number] {
+		return this.location;
+	}
 
 	getVertexBuffer() : GPUBuffer {
 		return this.vertexBuffer;

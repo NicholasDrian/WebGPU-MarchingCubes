@@ -12,7 +12,7 @@ const init = async function() {
 
 	while (true) {
 
-		await scene.tick();
+		scene.tick();
 		await renderer.render(scene);
 	}
 }

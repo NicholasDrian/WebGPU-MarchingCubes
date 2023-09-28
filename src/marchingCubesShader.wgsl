@@ -32,7 +32,7 @@ fn getBitMap(pointsLocal: array<vec4<f32>, 8>) -> u32 {
 	var res: u32 = 0;
 	for (var i : u32 = 0; i < 8; i++) {
 		res >>= 1;
-		if (pointsLocal[i].w > THRESHOLD) {
+		if (pointsLocal[i].w >= THRESHOLD) {
 			res |= 1 << 7;
 		}
 	}
