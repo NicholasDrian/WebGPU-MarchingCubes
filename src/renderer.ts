@@ -35,12 +35,21 @@ export class Renderer {
 	private async createDevice() {
 
 		if (!navigator.gpu) {
-			compatibilityCheck.innerText = "This browser does not support web gpu";
+			alert("Your browser / computer does not support WebGPU.");
+			compatibilityCheck.innerText = "This browser does not support WebGPU. Check here for a list of supported browsers https://caniuse.com/webgpu";
 			return;
 		} 
-		const adapter = await navigator.gpu.requestAdapter();
-		if (!adapter) {
-			compatibilityCheck.innerText = "No valid gpu adapter";
+		
+		var adapter: GPUAdapter | null;
+		try {
+			adapter = await navigator.gpu.requestAdapter();
+		} catch(error) {
+			console.log(error);	
+		}
+
+		if (adapter! == null) {
+			alert("Your browser / computer does not support WebGPU.");
+			compatibilityCheck.innerText = "No valid gpu adapter. Check here for a list of supported browsers https://caniuse.com/webgpu";
 			return;
 		}
 		this.device = <GPUDevice> await adapter.requestDevice();
